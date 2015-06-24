@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from linkedin import linkedin
 from linkedin.models import AccessToken
+import time
 
 config = {
     'id': 'linkedin',
@@ -29,8 +30,9 @@ def get_api(connection, **kwargs):
         None,
         linkedin.PERMISSIONS.enums.values()
     )
+    now = int(time.time())
     auth.token = AccessToken(getattr(connection, 'access_token'),
-                             getattr(connection, 'expires_in'))
+                             getattr(connection, 'expires_at') - now)
     api = linkedin.LinkedInApplication(auth)
     return api
 
@@ -51,14 +53,16 @@ def get_connection_values(response, **kwargs):
         return None
 
     access_token = response['access_token']
+    expires_in = response['expires_in']
 
+    expires_at = int(time.time()) + expires_in
     auth = linkedin.LinkedInAuthentication(None, None, None, None)
     auth.token = AccessToken(response['access_token'], response['expires_in'])
     api = linkedin.LinkedInApplication(auth)
     profile = api.get_profile(selectors=selectors)
 
     profile_url = profile['siteStandardProfileRequest']['url']
-    image_url = profile['pictureUrl'] if 'pictureUrl' in profile else ''
+    image_url = profile['pictureUrl'] if 'pictureUrl' in profile else '' 
 
     return dict(
         provider_id=config['id'],
@@ -69,6 +73,7 @@ def get_connection_values(response, **kwargs):
         full_name = '%s %s' % (profile['firstName'], profile['lastName']),
         profile_url=profile_url,
         image_url=image_url,
+        expires_at=expires_at,
         email=profile.get('emailAddress'),
     )
 
