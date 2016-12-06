@@ -43,8 +43,11 @@ def get_provider_user_id(response, **kwargs):
 def get_connection_values(response, **kwargs):
     if not response:
         return None
-
-    access_token = response['access_token']
+    try:
+        access_token = response['access_token']
+    except Exception as e:
+        print response
+        raise e
     graph = facebook.GraphAPI(access_token)
     profile = graph.get_object("me")
     profile_url = "http://facebook.com/profile.php?id=%s" % profile['id']
